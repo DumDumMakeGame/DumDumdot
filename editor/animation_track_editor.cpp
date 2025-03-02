@@ -33,6 +33,7 @@
 #include "animation_track_editor_plugins.h"
 #include "core/error/error_macros.h"
 #include "core/input/input.h"
+#include "core/variant/variant.h"
 #include "editor/animation_bezier_editor.h"
 #include "editor/editor_node.h"
 #include "editor/editor_settings.h"
@@ -57,6 +58,7 @@
 #include "scene/gui/view_panner.h"
 #include "scene/main/window.h"
 #include "servers/audio/audio_stream.h"
+#include <minwindef.h>
 
 constexpr double FPS_DECIMAL = 1;
 constexpr double SECOND_DECIMAL = 0.0001;
@@ -713,6 +715,10 @@ void AnimationMultiTrackKeyEdit::_key_ofs_changed(const Ref<Animation> &p_anim, 
 bool AnimationMultiTrackKeyEdit::_set(const StringName &p_name, const Variant &p_value) {
 	bool update_obj = false;
 	bool change_notify_deserved = false;
+
+	bool firstPass = true;
+	bool xChanged = false;
+	bool yChanged = false;
 	for (const KeyValue<int, List<float>> &E : key_ofs_map) {
 		int track = E.key;
 		for (const float &key_ofs : E.value) {
@@ -777,6 +783,27 @@ bool AnimationMultiTrackKeyEdit::_set(const StringName &p_name, const Variant &p
 							undo_redo->create_action(TTR("Animation Multi Change Keyframe Value"), UndoRedo::MERGE_ENDS);
 						}
 						Variant prev = animation->track_get_key_value(track, key);
+						
+						// For vectors, if only one component is changed, do not change the other component of other keyframes
+						if (value.get_type() == Variant::VECTOR2 || value.get_type() == Variant::VECTOR2I) {
+							if (firstPass) {
+								if ((FLOAT)value.get("x") != (FLOAT)prev.get("x")) {
+									xChanged = true;
+								}
+								if ((FLOAT)value.get("y") != (FLOAT)prev.get("y")) {
+									yChanged = true;
+								}
+								firstPass = false;
+							}
+
+							if (!xChanged) {
+								value.set("x", prev.get("x"));
+							}
+							if (!yChanged) {
+								value.set("y", prev.get("y"));
+							}
+						}
+						
 						undo_redo->add_do_method(animation.ptr(), "track_set_key_value", track, key, value);
 						undo_redo->add_undo_method(animation.ptr(), "track_set_key_value", track, key, prev);
 						update_obj = true;

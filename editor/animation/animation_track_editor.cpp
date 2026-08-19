@@ -42,7 +42,7 @@
 #include "editor/animation/animation_track_editor_plugins.h"
 #include "editor/docks/inspector_dock.h"
 #include "core/variant/variant.h"
-#include "editor/animation_bezier_editor.h"
+#include "editor/animation/animation_bezier_editor.h"
 #include "editor/editor_node.h"
 #include "editor/editor_string_names.h"
 #include "editor/editor_undo_redo_manager.h"
